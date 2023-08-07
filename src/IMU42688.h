@@ -26,9 +26,9 @@ private:
      * Parameter setting.
      *******************************************************************************************************/
     // For Debug
-    const bool Skip_Warm_Up = false;                 /** @brief True if want to run through the warm up procedure in 10 seconds @warning For debug only, never print in final version*/
-    const bool Serial_Print_Update_Data = false;     /** @brief Set true to print recieved IMU data. @warning For debug only, never print in final version*/
-    const bool Serial_Print_Warm_Up_Progress = true; /** @brief True to print the warm-up pregress.*/
+    const bool Skip_Warm_Up = true;                   /** @brief True if want to run through the warm up procedure in 10 seconds @warning For debug only, never print in final version*/
+    const bool Serial_Print_Update_Data = false;      /** @brief Set true to print recieved IMU data. @warning For debug only, never print in final version*/
+    const bool Serial_Print_Warm_Up_Progress = false; /** @brief True to print the warm-up pregress.*/
 
     // Warm-up Setting
 
@@ -39,7 +39,7 @@ private:
      */
     const int SteadyTempCalPeriod = 90;
     const float SteadyTempTH = 0.5;     /** @brief Temperature stability threshold ( C ).*/
-    const float WarmUpTemperature = 47; /** @brief Default IMU warm-up complete temperature ( C ).*/
+    const float WarmUpTemperature = 40; /** @brief Default IMU warm-up complete temperature ( C ).*/
 
     // For calibration
     const float Cal_TH = 0.02; /** @brief Threshold value for identify the stability of IMU in calibration data collection.*/
@@ -94,8 +94,9 @@ public:
      * Remember to set these values in setup()
      * Chance to cause the panic / crash / ... if not setting these pointer.
      ********************************************************************************************************/
-    int *fWarmUpTime; /*Pointer to the time-off auto-sleep clock*/
-    SLED *pLED;       /*Pointer to SLED for hint light*/
+    int *fWarmUpTime;    /** @brief Pointer to the time-off auto-sleep clock*/
+    SLED *pLED;          /** @brief Pointer to SLED for hint light*/
+    uint8_t *ExpertMode; /** @brief True if allow getting into full calibration function.*/
 
     /********************************************************************************************************
      * IMU Information
@@ -130,6 +131,7 @@ public:
 
     float Angle[3] = {0, 0, 0};        /** @brief Raw real-time angle in degree. < angle X , angle Y , angle Z >*/
     float AngleCal[3] = {0, 0, 0};     /** @brief Calibrated real-time angle in degree. < angle X , angle Y , angle Z >*/
+    float AngleCal_ExG[3] = {0, 0, 0}; /** @brief Calibrated real-time angle in degree. Set the G direction angle to 200. < angle X , angle Y , angle Z >*/
     float AngleCalShow[3] = {0, 0, 0}; /** @brief Calibrated special filted angle in degree (for display only). < angle X , angle Y , angle Z >*/
     float SensorTemperature;           /** @brief Filted sensor temperature ( C ).*/
     uint8_t unit = 0;                  /** @brief Current interface levelness display unit. @note 0 : degree @note  1 : mm/m @note 2 : radian */
@@ -194,13 +196,6 @@ public:
     void Calibrate();
 
     int FullCalStep = 0;
-
-    /**
-     * @brief True if allow getting into full calibration function.
-     * @attention Used in DigitalSpiritLevel series only.
-     * @attention For DigitalStraightEdge series, ExpertMode should always be false.
-     */
-    bool ExpertMode = false;
 
     /***********************************************************
      * Function not used currently.

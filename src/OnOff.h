@@ -7,9 +7,9 @@
 class OnOff
 {
 private:
-    const int TO_Clock = 5 * 60 * 1000; /** @brief Time to trigger the system time out power off.*/
-    const int LP_Clock = 3000;          /** @brief Time to trigger Long Press power off.*/
-    const int SH_Clock = 2500;          /** @brief Time period for showing the power off image.*/
+    const int TO_Clock = 15 * 60 * 1000; /** @brief Time to trigger the system time out power off.*/
+    const int LP_Clock = 2000;           /** @brief Time to trigger Long Press power off.*/
+    const int SH_Clock = 2500;           /** @brief Time period for showing the power off image.*/
     int OffClock = 0;
     OLED *pOLED;
     SLED *pLED;
@@ -48,7 +48,7 @@ public:
             delay(100);
         }
         // If is not long press
-        if (millis() < 3000)
+        if (millis() < LP_Clock)
         {
             // Print Error
             Serial.println("Wake up count Failed");
@@ -101,12 +101,12 @@ public:
         // Show Power Off Command
         if (PressSleep)
         {
-            pOLED->Block("Shutting Down",1000000);
+            pOLED->Block("Shutting Down", SH_Clock * 2);
             Serial.println(F("Command Sleep"));
         }
         else if (TimeOffSleep)
         {
-            pOLED->Block("Auto Sleep",1000000);
+            pOLED->Block("Auto Sleep", SH_Clock * 2);
             Serial.println(F("Auto Sleep"));
         }
 
@@ -123,17 +123,16 @@ public:
                 // If user press button when showing time out power off, stop the power off procedure.
                 if (TimeOffSleep)
                 {
-                    if (digitalRead(ButPin))
+                    if (millis() - LastEdit < SH_Clock)
                     {
-                        LastEdit = millis();
+                        pOLED->flag.BlockTime = millis();
                         pLED->Set(0, 0, 0, 4);
                         return;
                     }
-                    delay(1);
                 }
             }
             // Power Off Confirm
-            //pOLED->TurnOff();
+            pOLED->TurnOff();
             // Wait for button release
             while (digitalRead(ButPin))
             {

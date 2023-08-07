@@ -150,6 +150,7 @@ byte IMU42688::Update()
         for (int i = 0; i < 3; i++)
         {
             AngleCal[i] = (Angle[i] + e[i]) * s[i];
+            AngleCal_ExG[i] = (Gravity % 3 == i) ? 200 : (Angle[i] + e[i]) * s[i];
             AngleCalShow[i] = (AngleShow[i] + e[i]) * s[i];
         }
 
@@ -224,7 +225,7 @@ byte IMU42688::Update()
             // Step 1: Check if the temperature reach the defined warm-up temperature. ------------------------------------
             if (SensorTemperature < WarmUpTemperature)
             {
-                
+
                 // Step 2: Calculate the warm up running-bar from the sensor temperature. ---------------------------------
                 // Used the below calculation to make the warm-up running bar look stable.
                 int fWarmUp_t = pow((SensorTemperature - StartTemperature) / (WarmUpTemperature - StartTemperature), 2) * 100;
@@ -457,15 +458,15 @@ void IMU42688::SetUnit(String Info)
     Info.toLowerCase();
     Info.replace(" ", "");
     int new_unit = unit;
-    if (Info.indexOf("unit=deg") != -1)
+    if (Info.indexOf("deg") != -1)
     {
         new_unit = 0;
     }
-    else if (Info.indexOf("unit=mm/m") != -1)
+    else if (Info.indexOf("mm/m") != -1)
     {
         new_unit = 1;
     }
-    else if (Info.indexOf("unit=rad") != -1)
+    else if (Info.indexOf("rad") != -1)
     {
         new_unit = 2;
     }
@@ -476,6 +477,7 @@ void IMU42688::SetUnit(String Info)
         pref.begin("Angle_Cal", false);
         pref.putInt("Unit", unit);
         pref.end();
+        Serial.print(F("Set unit = "));
         Serial.println(new_unit);
     }
 }

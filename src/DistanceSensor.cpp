@@ -58,6 +58,11 @@ void DistanceSensor::SetUp(const byte &IO_SDA1, const byte &IO_SCL1, const byte 
             }
         }
     }
+    for (int i = 0; i < 8; i++)
+    {
+        if (isConnect[i])
+            ConnectCount++;
+    }
 }
 
 /**
@@ -153,6 +158,18 @@ void DistanceSensor::Generate_Result()
         }
         Serial.println(S);
     }
+    else if (Serial_Print_Distance)
+    {
+        String S = "";
+        for (int i = 0; i < 8; i++)
+        {
+            if (isConnect[i])
+                S += String(Distance[i]) + ",";
+            else
+                S += "0,";
+        }
+        Serial.println(S);
+    }
 
     // If recieve set zero command.
     if (SetZeros)
@@ -166,6 +183,8 @@ void DistanceSensor::Generate_Result()
         Mm.Add(&Distance[0], 8);
         if (pReceive->isSenseConnect) // If connect to sub ruler, consider the sub ruler value.
             Mm.Add(&pReceive->Distance[0], 7);
+        if (Mm.MaxVal >= Cut_Off_Distance)
+            Mm.Diff = Cut_Off_Distance;
     }
 }
 
@@ -210,7 +229,7 @@ void DistanceSensor::Cal_Zero()
             for (int i = 0; i < 8; i++)
             {
                 if (isConnect[i])
-                    S += String(Zeros[i],3) + ",";
+                    S += String(Zeros[i], 3) + ",";
                 else
                     S += "0,";
             }

@@ -11,7 +11,7 @@ class Measure
 {
 private:
     const bool Print_Result = true;                          /** @brief True to print result for debug.*/
-    const bool Print_Stable_Situation = false;               /** @brief True to print stabilization situation for debug.*/
+    const bool Print_Stable_Situation = true;                /** @brief True to print stabilization situation for debug.*/
     float StableStart[Stable_Num] = {0};                     /** @brief Sensor stabilization identification reference position.*/
     float Stable_TH[Stable_Num] = {0};                       /** @brief Sensor stabilization identification threshold.*/
     float Measure_TH[Stable_Num] = {0};                      /** @brief Sensor moving identification threshold.*/
@@ -23,7 +23,7 @@ private:
     byte MeasureCount = 0;                                   /** @brief Measure Data collection counter.*/
     const byte StableCountNum = 5;                           /** @brief Require data length for stabilization identification .*/
     const byte MeasureCountNum = 20;                         /** @brief Require data length for measurement.*/
-    const float Stable_Default_Value = 200;                  /** @brief Default stabilization identification reference position.*/
+    const float Stable_Default_Value = 1000;                 /** @brief Default stabilization identification reference position.*/
     const size_t StableStartArraySize = sizeof(StableStart); /** @brief Array size of stable data.*/
     const size_t MeasureArraySize = sizeof(Measure);         /** @brief Array size of measure data.*/
 
@@ -33,7 +33,10 @@ private:
      */
     void SetToDefault()
     {
-        memset(StableStart, Stable_Default_Value, StableStartArraySize);
+        for (int i = 0; i < Stable_Num; i++)
+        {
+            StableStart[i] = Stable_Default_Value;
+        }
         memset(Measure, 0, MeasureArraySize);
         StableCount = 0;
         MeasureCount = 0;
@@ -164,7 +167,7 @@ public:
                     if (abs(*Stable[i] - StableStart[i]) > Measure_TH[i])
                     {
                         if (Print_Stable_Situation)
-                            Serial.printf("Data %d exceed measure threshold. \n", i);
+                            Serial.printf("Data %d exceed measure threshold : %f / %f .\n", i, *Stable[i], StableStart[i]);
                         isStable = false;
                         break;
                     }
@@ -185,8 +188,8 @@ public:
                     // Check if each data stay within threshold
                     if (abs(*Stable[i] - StableStart[i]) > Stable_TH[i])
                     {
-                        if (Print_Stable_Situation)
-                            Serial.printf("Data %d exceed stable threshold \n", i);
+                        if (Print_Stable_Situation && StableStart[i] != 1000)
+                            Serial.printf("Data %d exceed stable threshold : %f / %f .\n", i, *Stable[i], StableStart[i]);
                         isStable = false;
                         break;
                     }

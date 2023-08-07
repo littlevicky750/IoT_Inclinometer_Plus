@@ -25,6 +25,7 @@ private:
     // For Debug
     const bool Serial_Print_Connection = true;  /** @brief True if require printing the I2C scanning result in Setup.*/
     const bool Serial_Print_Raw_Data = false;   /** @brief True if require printing the Raw Data while Update.*/
+    const bool Serial_Print_Distance = false;   /** @brief True if require printing the Distance while Update.*/
     const bool Serial_Print_Calibration = true; /** @brief True if require printing the calibration result.*/
 
     // Filter Setting
@@ -78,6 +79,7 @@ public:
     float ADCfilt[8] = {0};            /** @brief Filted ADS1115 ADC reading.*/
     float Distance[8] = {0};           /** @brief Distance value calculate from ADCfilt.*/
     bool isConnect[8] = {false};       /** @brief isConnect [ i ] = true if Sensor [ i ] is connected.*/
+    uint8_t ConnectCount = 0;          /** @brief Numbers of connected ADS1115.*/
     void SetUp(const byte &IO_SDA1, const byte &IO_SCL1, const byte &IO_SDA2, const byte &IO_SCL2);
     void Update();
     void Update(uint8_t WireNum);

@@ -134,19 +134,26 @@ TaskHandle_t *T_SEND;
 TaskHandle_t *T_LOOP;
 
 int OLED_Period = 125;
-int Data_Period = 100;
+int Data_Period = 200;
 int LOOP_Period = 500;
-int SEND_Period = 3000;
+int SEND_Period = 1000;
 
 static void User_Interface(void *pvParameter)
 {
   BaseType_t xWasDelayed;
   TickType_t xLastWakeTime = xTaskGetTickCount();
+  bool BLE_Status_Pre = false;
   for (;;)
   {
     xWasDelayed = xTaskDelayUntil(&xLastWakeTime, OLED_Period);
-    if (!xWasDelayed && millis() > 10000)
+    if (BLE_Status_Pre != ble.State.isConnect)
+    {
+      BLE_Status_Pre = ble.State.isConnect;
+      oled.Block(BLE_Status_Pre ? "Bluetooth Connect" : "Bluetooth Disconnect", 5000);
+    }
+    else if (!xWasDelayed && millis() > 10000)
       Serial.println("[Warning] Task OLED Time Out.");
+
     But.Update();
     oled.Update();
   }
@@ -190,9 +197,18 @@ static void UART(void *pvParameter)
     xWasDelayed = xTaskDelayUntil(&xLastWakeTime, Data_Period);
     if (!xWasDelayed && millis() > 10000)
       Serial.println("[Warning] Task UART Time Out.");
-    imu.Update();
+    if (imu.Update() == imu.IMU_Update_Success)
+    {
+      measure.DataIsUpdte(0, 3);
+      if (imu.CalibrateCheck == 1)
+        imu.Calibrate();
+      if (imu.CalibrateCheck == 2)
+      {
+        oled.Block((imu.Cursor == 2) ? "Calibration Data Clear" : "Calibrate Complete", 3000);
+        imu.CalStop();
+      }
+    }
     Pogo.Update();
-    measure.DataIsUpdte(0, 3);
     measure.DataIsUpdte(10, 7);
     measure.Update();
   }
@@ -209,6 +225,8 @@ static void LOOP(void *pvParameter)
       Serial.println("[Warning] Task LOOP Time Out.");
     led.Update();
     Swich.Off_Clock_Check();
+    Bat.Update_BW();
+    digitalWrite(IO_Button_LED, But.CanMeasure());
   }
 }
 
@@ -218,12 +236,19 @@ static void SEND(void *pvParameter)
   TickType_t xLastWakeTime = xTaskGetTickCount();
   ble.pRTC = &Clock;
   ble.pLED = &led;
+  ble.pIMU = &imu;
   ble.Initialize(Swich.LastEdit);
   for (;;)
   {
     xWasDelayed = xTaskDelayUntil(&xLastWakeTime, SEND_Period);
     if (!xWasDelayed && millis() > 10000)
       Serial.println("[Warning] Task SEND Time Out.");
+    if (ble.State.Send_Info && measure.State == measure.Done)
+    {
+      ble.Send(&measure.Result[0]);
+      measure.Switch(false);
+    }
+    ble.DoSwich();
   }
 }
 
@@ -242,17 +267,23 @@ void setup()
   imu.Initialize(IO_IMU_RX, IO_IMU_TX);
   imu.pLED = &led;
   imu.fWarmUpTime = &Swich.LastEdit;
+  imu.ExpertMode = &ble.State.ExpertMode;
   // Pogo Pin Set Up
   Pogo.Setup(IO_POGO_S_TX, IO_POGO_S_RX, 0);
   Pogo.Setup(IO_POGO_P_TX, IO_POGO_P_RX, 1);
   Pogo.pDS = &DS;
   Pogo.pAngle = &imu.AngleCalShow[2];
   // Measurement pointer Setting
-  measure.Set(imu.AngleCal, 0, 3, 1, 2);
+  measure.SetInput(imu.AngleCal, 0, 3);
+  measure.SetStable(imu.AngleCal_ExG, 0, 3, 0.2, 0.5);
   measure.Set(DS.Distance, 3, 7, 0.5, 1);
   measure.Set(Pogo.R_Pack.Distance, 10, 7, 0.5, 1);
   // Battery Set Up
   Bat.SetPin(IO_Battery);
+  Bat.Update();
+  // Button Lifht Set Up
+  pinMode(IO_Button_LED, OUTPUT);
+  digitalWrite(IO_Button_LED, LOW);
   // UI pointer setting
   oled.pRTC = &Clock;
   oled.pDS = &DS;
@@ -260,8 +291,13 @@ void setup()
   oled.pMeasure = &measure;
   oled.pIMU = &imu;
   oled.pBatt = &Bat.Percent;
+  oled.pBLEState = &ble.State.Address[0];
+  oled.pRTC = &Clock;
   But.pDS = &DS;
   But.pMeasure = &measure;
+  But.pIMU = &imu;
+  But.pBLEState = &ble.State.Address[0];
+  But.pOLED = &oled.flag;
   // Initialize Long Button LED
   pinMode(IO_Button_LED, OUTPUT);
   digitalWrite(IO_Button_LED, LOW);
@@ -273,16 +309,16 @@ void setup()
   led.Update();
   oled.Update();
   // System Start
-  xTaskCreatePinnedToCore(User_Interface, "Core 0 Loop", 16384, NULL, 3, T_OLED, 0);
   xTaskCreatePinnedToCore(I2C0, "Core 1 I2C0", 16384, NULL, 4, T_I2C0, 1);
   xTaskCreatePinnedToCore(I2C1, "Core 1 I2C1", 16384, NULL, 4, T_I2C1, 1);
   xTaskCreatePinnedToCore(UART, "Core 1 UART", 16384, NULL, 4, T_UART, 1);
   xTaskCreatePinnedToCore(LOOP, "Core 1 LOOP", 8192, NULL, 2, T_LOOP, 1);
   xTaskCreatePinnedToCore(SEND, "Core 1 SEND", 8192, NULL, 3, T_SEND, 1);
+  xTaskCreatePinnedToCore(User_Interface, "Core 0 Loop", 16384, NULL, 5, T_OLED, 0);
   attachInterrupt(digitalPinToInterrupt(IO_Button0), ButtonPress0, CHANGE);
   attachInterrupt(digitalPinToInterrupt(IO_Button1), ButtonPress1, FALLING);
   attachInterrupt(digitalPinToInterrupt(IO_Button2), ButtonPress2, FALLING);
-  attachInterrupt(digitalPinToInterrupt(IO_Long_Button), ButtonPress3, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(IO_Long_Button), ButtonPress3, RISING);
 }
 
 void loop()
