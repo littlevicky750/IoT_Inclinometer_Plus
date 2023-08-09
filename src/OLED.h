@@ -1,78 +1,79 @@
 #ifndef OLED_H
 #define OLED_H
 #include <U8g2lib.h>
-#include "DistanceSensor.h"
-#include "Measure.h"
+#include <Wire.h>
 #include "IMU42688.h"
 #include "RealTimeClock.h"
-#include "Serial_Communication_Pogo.h"
-#ifndef CS1
-#define CS1 10
-#endif
-#ifndef CS2
-#define CS2 42
-#endif
-#ifndef IO_OLED_RST
-#define IO_OLED_RST 41
-#endif
+#include "AngleCalculate.h"
+#include "Go_Standard.h"
 
-struct OLED_Flag
-{
-    uint8_t Page = 0;
-    uint8_t Cursor = 0;
-    int BlockTime;
-};
+#define H 1
+#define V 0
+
+#ifndef TestVersion
+#define TestVersion false
+#endif
 
 class OLED
 {
 private:
-    uint8_t IO_VCC = 0;
-    bool isU8g2Begin = false;
-    bool isH = true;
-    uint8_t R_now = 6;
-    int Timer = 0;
-    String BlockInfo;
-    int FlashCount = 0;
-    // Special Operation
-    void Clear();
-    void DoBlock();
-    // Each Page
-    void Main();
+    int Count = 0;
+    int Rotation = -1;
+    void Begin();
+    bool isU8G2Begin = false;
+    uint8_t I2C_Add = 0x3C;
     void Menu();
-    void Flatness();
+    void Describe(int x, int y, int w, int h);
+    void QuickInfo(int x, int y, int w, int h);
+    void Main();
+    void Main2(int x, int y, int TW, int TH);
+    void ICON(int x, int y, int w, int h);
+    void Battery(int x, int y, int w, int h, int b);
+    void CheckState();
+    void Clock();
+    void Cal();
+    void Selection(bool isH, bool Select,uint8_t Mode /*0: YesNo, 1: OnOff*/);
+    void YesNo(bool isH, bool Select);
+    void Cal_M();
+    void Save();
     void Bluetooth();
-    void Cal_Menu();
-    void Cal_Check();
-    // Function call by page
-    const unsigned char * Connect_Icon(bool isSetting);
-    void DrawFloat_9x15(int x, int y, String f);
-    void DrawFloat_12x20(int x, int y, String f);
-    void DrawArrow();
-    void YesNo(bool IsH, bool Select);
-    uint8_t BLEShow(bool Animation);
+    void Mode();
+    void AngleXYZ();
+    int BLEShow();
     bool Flash(int Due, int Period);
-    bool DoR(bool isMain);
-    // QC Page
-    void Show_Sensor_Address();
-    void Seven_Sensor_Info();
-    void One_Sensor_Info();
-    
+    int FlashCount;
+    byte WiFi_Select_Flag = 0;
+    byte State = 0;
+
+    const uint8_t *Default_Font = u8g2_font_helvB10_tr;
+    const uint8_t *Describe_Font = u8g2_font_helvB08_tr;
+    const uint8_t *MSpace_Font = u8g2_font_7x14B_tr;
 
 public:
-    DistanceSensor *pDS;
-    RealTimeClock *pRTC;
-    Serial_Communication_Pogo *pPOGO;
-    Measure *pMeasure;
-    IMU42688 *pIMU;
+    int *Bat;
+    RealTimeClock *ClockShow;
+    String *ID;
+    AngleCalculate *Measure;
+    IMU42688 *imu;
+    bool *SDState;
+    bool *fSave;
+    SDCard *pSD;
     uint8_t *pBLEState;
-    int *pBatt;
-    OLED_Flag flag;
-    void TurnOn(byte VCC);
-    void InitDisplay();
+    int *SleepTime;
+    
+    byte Page = 0;
+    byte MenuCursor = 0;
+    byte Cursor = 0;
+    Go_Standard *Standard;
+    int BlockTime = 0;
+    
+    void Initialize();
+    void Clear();
     void TurnOff();
-    void Do_RST();
-    void Block(String Info, int time);
+    void ShowLowPower();
     void Update();
+    void Block(String BlockInfo);
+    void EasyBlock(String BlockInfo);
 };
 
 #endif

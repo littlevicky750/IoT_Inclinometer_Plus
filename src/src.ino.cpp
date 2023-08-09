@@ -1,5 +1,8 @@
-// Add function set show unit via SD card.
-// Change Show
+# 1 "C:\\Users\\littl\\AppData\\Local\\Temp\\tmp6it1cvn3"
+#include <Arduino.h>
+# 1 "C:/Users/littl/HKUST/CHANG Ching Wei - Wonder Construct Team/Arduino codes/DigitalSpiritLevel_V5.0/src/src.ino"
+
+
 #include <Arduino.h>
 #include "SerialDebug.h"
 
@@ -12,8 +15,8 @@ const byte Pin_SwichEN2 = 10;
 const byte Pin_Button0 = Pin_Button_Wakeup;
 const byte Pin_Button1 = 7;
 const byte Pin_Button2 = 6;
-const byte Pin_I2C_SDA = 8; // Default
-const byte Pin_I2C_SCL = 9; // Default
+const byte Pin_I2C_SDA = 8;
+const byte Pin_I2C_SCL = 9;
 const byte Pin_SD_MOSI = 12;
 const byte Pin_SD_MISO = 13;
 const byte Pin_SD_SCK = 14;
@@ -31,33 +34,7 @@ const byte Pin_LED_1_R = 48;
 const byte Pin_LED_0_B = 40;
 const byte Pin_LED_0_G = 41;
 const byte Pin_LED_0_R = 42;
-
-/*
-LED Setting
-Color-Modeode - Describe (Priority)
-Mode L : Light Up
-Mode F : Fast Blink
-Mode S : Slow Blink
-
-LED 0 :
-  R-L - Bat Low Power (2)
-  Y-L - IMU Not Warm Up (3)
-  G-F - IMU Waiting for Stable (3) 
-  G-S - IMU Collecting Data (3) 
-  G-L - IMU Collect Data Done (3)
-  B-F - Bluetooth advertising (1)
-  B-S - Bluetooth connect to client (1)
-  C-F - RFID find new ID (4)
-  M-F - RTC Set Time Success (3)
-  W-L - IO-0 Press (4)
-LED 1 :
-  R-F - Any Other Error (0)
-  G-F - File Save Success / Create New File (4)
-  Y-F - Searching for SD card
-  Y-S - SD card off
-
-*/
-
+# 61 "C:/Users/littl/HKUST/CHANG Ching Wei - Wonder Construct Team/Arduino codes/DigitalSpiritLevel_V5.0/src/src.ino"
 #define RFID_RST IO_RFID_RST
 #define TestVersion false
 #include "LEDFlash.h"
@@ -67,7 +44,7 @@ LEDFlash LED;
 #include "RealTimeClock.h"
 RealTimeClock Clock;
 
-// #include "Net.h"
+
 #include "BLE.h"
 #include "OLED.h"
 #include "LongPressSwich.h"
@@ -100,7 +77,17 @@ int LastEdit = 0;
 bool fHaveSD = false;
 bool fSave = false;
 bool doRFID = true;
-
+static void FAST(void *pvParameter);
+static void MAIN(void *pvParameter);
+static void SLOW(void *pvParameter);
+static void Save(void *pvParameter);
+void ButtonChange0();
+void ButtonChange1();
+void ButtonChange2();
+void ButtonUpdate();
+void setup();
+void loop();
+#line 104 "C:/Users/littl/HKUST/CHANG Ching Wei - Wonder Construct Team/Arduino codes/DigitalSpiritLevel_V5.0/src/src.ino"
 static void FAST(void *pvParameter)
 {
   TickType_t xLastWakeTime;
@@ -177,15 +164,15 @@ static void Save(void *pvParameter)
     xWasDelayed = xTaskDelayUntil(&xLastWakeTime, 3000);
     if (!xWasDelayed)
       Debug.println("[Warning] Task Save Time Out.");
-    // Check SD State and save Debug String every Loop
-    // Create and Save Data to file if fSave = true;
+
+
     String Msg = "";
     byte isSDSave = sdCard.Err_SD_Off;
     if (fSave && Calculate.State == Calculate.Done)
     {
-      // BLE Send Message
+
       ble.Send(&Calculate.ResultAngle[0]);
-      // SD Save Message
+
       Msg += Clock.DateTimeStamp() + ",";
       Msg += rfid.ID + ",";
       Msg += String(Calculate.ResultAngle[0], 2) + ",";
@@ -209,7 +196,7 @@ static void Save(void *pvParameter)
     fHaveSD = (isSDSave == sdCard.SDOK || isSDSave == sdCard.Err_File_Write_Failed);
     if (fHaveSD != fHaveSD_pre)
     {
-      if (fHaveSD) // Check the file when the sd card first detected.
+      if (fHaveSD)
       {
         String Info = sdCard.Read("/Setting.txt");
         if (Info.indexOf("Full_Cal_Password=123456789") != -1)
@@ -244,13 +231,13 @@ bool ButPress[3] = {false};
 void ButtonChange0()
 {
   if (digitalRead(Pin_Button0))
-  { // Release
+  {
     Swich.Off_Clock_Stop();
     LED.Set(0, 0, 0, 5);
     ButPress[0] = true;
   }
   else
-  { // Press
+  {
     Swich.Off_Clock_Start();
   }
 }
@@ -293,7 +280,7 @@ void ButtonUpdate()
   }
   switch (oled.Page)
   {
-  case 0: // Main Page
+  case 0:
     if (ButPress[0])
     {
       if (Calculate.State == Calculate.Not_Stable || Calculate.State == Calculate.Done || fSave)
@@ -311,7 +298,7 @@ void ButtonUpdate()
     {
       Calculate.Switch((Calculate.State != Calculate.Not_Stable) && (Calculate.State != Calculate.Done));
       fSave = false;
-      // rfid.Reset();
+
     }
     else if (ButPress[2])
     {
@@ -337,7 +324,7 @@ void ButtonUpdate()
       }
     }
     break;
-  case 1: // Menu Select Page
+  case 1:
     if (ButPress[0])
     {
       oled.Page = (oled.MenuCursor == 0) ? 0 : oled.MenuCursor + 1;
@@ -360,7 +347,7 @@ void ButtonUpdate()
     if (ButPress[0])
       oled.Page = 0;
     break;
-  case 3: // BLE Page
+  case 3:
     if (ButtonOff)
       ble.Status.OnOff = false;
     if (ButtonOn)
@@ -368,7 +355,7 @@ void ButtonUpdate()
     if (ButPress[0])
       oled.Page = 0;
     break;
-  case 4: // SD Card Page
+  case 4:
     if (ButtonUp && sdCard.Cursor > 0)
       sdCard.Cursor--;
     if (ButtonDown && sdCard.Cursor < sdCard.Show.endsWith(".csv") + 1)
@@ -380,7 +367,7 @@ void ButtonUpdate()
     if (ButPress[0] && sdCard.Cursor == 2)
       oled.EasyBlock(sdCard.Show);
     break;
-  case 5: // Clock Page
+  case 5:
     if (Clock.Cursor == -1)
     {
       if (ButPress[0])
@@ -414,7 +401,7 @@ void ButtonUpdate()
     if (ButPress[0] || ButPress[1] || ButPress[2])
       oled.Page = 0;
     break;
-  case 7: // Battery Page
+  case 7:
     if (ButtonOn)
       Swich.SleepTimeAdjust(true);
     if (ButtonOff)
@@ -422,7 +409,7 @@ void ButtonUpdate()
     if (ButPress[0])
       oled.Page = 0;
     break;
-  case 8: // Calibration Page
+  case 8:
     if (imu.CalibrateCheck == -1 && imu.Cursor == 0 && ButPress[0])
       oled.Page = 1;
     else
@@ -497,7 +484,7 @@ void setup()
   ble.pRTC = &Clock;
   ble.pLED = &LED;
 
-  // Wait for Button 0 release
+
   while (!digitalRead(Pin_Button0))
     delay(1);
   LED.Set(0, 0, 0, 4);
@@ -515,5 +502,5 @@ void setup()
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
+
 }

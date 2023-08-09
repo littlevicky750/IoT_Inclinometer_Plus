@@ -150,7 +150,6 @@ byte IMU42688::Update()
         for (int i = 0; i < 3; i++)
         {
             AngleCal[i] = (Angle[i] + e[i]) * s[i];
-            AngleCal_ExG[i] = (Gravity % 3 == i) ? 200 : (Angle[i] + e[i]) * s[i];
             AngleCalShow[i] = (AngleShow[i] + e[i]) * s[i];
         }
 
@@ -174,7 +173,7 @@ byte IMU42688::Update()
             S_Print += "Traw : " + String(IMU.RecievedIMUData[9]) + ", ";
             S_Print += "T : " + String(SensorTemperature) + ", ";
             S_Print += "g : " + String(Gravity);
-            Serial.println(S_Print);
+            Debug.println(S_Print);
         }
         break;
     NextLoop:
@@ -225,7 +224,6 @@ byte IMU42688::Update()
             // Step 1: Check if the temperature reach the defined warm-up temperature. ------------------------------------
             if (SensorTemperature < WarmUpTemperature)
             {
-
                 // Step 2: Calculate the warm up running-bar from the sensor temperature. ---------------------------------
                 // Used the below calculation to make the warm-up running bar look stable.
                 int fWarmUp_t = pow((SensorTemperature - StartTemperature) / (WarmUpTemperature - StartTemperature), 2) * 100;
@@ -233,8 +231,7 @@ byte IMU42688::Update()
                 if (fWarmUp_t > fWarmUp)
                 {
                     fWarmUp = fWarmUp_t;
-                    if (Serial_Print_Warm_Up_Progress)
-                        Serial.println(fWarmUp);
+                    // Debug.println(String(fWarmUp));
                 }
 
                 // Step 3: Calculate the temperature stability, and used it as the secondary warm-up reference. -------------------
@@ -255,8 +252,7 @@ byte IMU42688::Update()
                     if (fWarmUp_t > fWarmUp)
                     {
                         fWarmUp = fWarmUp_t;
-                        if (Serial_Print_Warm_Up_Progress)
-                            Serial.println(fWarmUp);
+                        // Debug.println(String(fWarmUp));
                     }
 
                     // Step 4: Prevent the auto shut-down when waiting for warm-up. ---------------------------------------
@@ -458,15 +454,15 @@ void IMU42688::SetUnit(String Info)
     Info.toLowerCase();
     Info.replace(" ", "");
     int new_unit = unit;
-    if (Info.indexOf("deg") != -1)
+    if (Info.indexOf("unit=deg") != -1)
     {
         new_unit = 0;
     }
-    else if (Info.indexOf("mm/m") != -1)
+    else if (Info.indexOf("unit=mm/m") != -1)
     {
         new_unit = 1;
     }
-    else if (Info.indexOf("rad") != -1)
+    else if (Info.indexOf("unit=rad") != -1)
     {
         new_unit = 2;
     }
@@ -477,7 +473,6 @@ void IMU42688::SetUnit(String Info)
         pref.begin("Angle_Cal", false);
         pref.putInt("Unit", unit);
         pref.end();
-        Serial.print(F("Set unit = "));
         Serial.println(new_unit);
     }
 }
@@ -699,12 +694,12 @@ void IMU42688::FullCalibrate()
             pref.putFloat(&prefkey[i + 3][0], b[i]);
             pref.putFloat(&prefkey[i + 6][0], e[i]);
 
-            // Print the result------------------------------------------
-            Serial.print(String(prefkey[i]) + " = " + String(s[i], 6) + ", ");
-            Serial.print(String(prefkey[i + 3]) + " = " + String(b[i], 6) + ", ");
-            Serial.println(String(prefkey[i + 6]) + " = " + String(e[i], 6));
+            // Print the result to debug file ------------------------------------------
+            Debug.print(String(prefkey[i]) + " = " + String(s[i], 6) + ", ");
+            Debug.print(String(prefkey[i + 3]) + " = " + String(b[i], 6) + ", ");
+            Debug.println(String(prefkey[i + 6]) + " = " + String(e[i], 6));
         }
-        Serial.println("Temperature now = " + String(SensorTemperature) + " C");
+        Debug.println("Temperature now = " + String(SensorTemperature) + " C");
         pref.end();
 
         // Calibration Complete
@@ -783,10 +778,10 @@ void IMU42688::FullCalibrate_Z()
         pref.putFloat("Ez", e[2]);
         pref.end();
         // Print result to debug file. --------------------------------------
-        Serial.print("Sz = " + String(s[2], 6) + ", ");
-        Serial.print("Bz = " + String(b[2], 6) + ", ");
-        Serial.print("Ez = " + String(e[2], 6) + ", ");
-        Serial.println("Temperature now = " + String(SensorTemperature) + " C");
+        Debug.print("Sz = " + String(s[2], 6) + ", ");
+        Debug.print("Bz = " + String(b[2], 6) + ", ");
+        Debug.print("Ez = " + String(e[2], 6) + ", ");
+        Debug.println("Temperature now = " + String(SensorTemperature) + " C");
         // Step 6 : Calibration Complete ================================================
         CalibrateCheck = 2;
         SetCalLED(5);

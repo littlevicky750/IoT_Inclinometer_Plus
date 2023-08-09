@@ -1,6 +1,7 @@
 #include "RealTimeClock.h"
 #include <Arduino.h>
 #include <ESP32Time.h>
+#include "SerialDebug.h"
 
 RTC_DS3231 rtc;
 ESP32Time Inrtc;
@@ -10,10 +11,10 @@ void RealTimeClock::Initialize(int UpdateDelay)
   UpdateFrequency = (UpdateDelay < 1000) ? 1000 / UpdateDelay : 0;
   if (!rtc.begin(&Wire))
   {
-    Serial.print("[Clock] Couldn't find RTC! Used System Upload Time : ");
-    Serial.print(__DATE__);
-    Serial.print(" ");
-    Serial.println(__TIME__);
+    Debug.print("[Clock] Couldn't find RTC! Used System Upload Time : ");
+    Debug.print(__DATE__);
+    Debug.print(" ");
+    Debug.println(__TIME__);
     RtcBegin = false;
     now = DateTime(CompileTime.unixtime() + millis() / 1000);
   }
@@ -22,10 +23,10 @@ void RealTimeClock::Initialize(int UpdateDelay)
     if (rtc.lostPower())
     {
       RtcLostPower = true;
-      Serial.print("[Clock] RTC lost power, reset the time : ");
-      Serial.print(__DATE__);
-      Serial.print(" ");
-      Serial.println(__TIME__);
+      Debug.print("[Clock] RTC lost power, reset the time : ");
+      Debug.print(__DATE__);
+      Debug.print(" ");
+      Debug.println(__TIME__);
       rtc.adjust(CompileTime);
     }
 
@@ -36,7 +37,7 @@ void RealTimeClock::Initialize(int UpdateDelay)
       {
         now = rtc.now();
         CompileTime = DateTime(now.unixtime() - millis() / 1000);
-        Serial.println("[Clock] RTC Start, now = " + DateTimeStamp());
+        Debug.println("[Clock] RTC Start, now = " + DateTimeStamp());
         Inrtc.setTime(now.unixtime()); // Set esp internal rtc time (For SDCard modified time)
         return;
       }
@@ -44,7 +45,7 @@ void RealTimeClock::Initialize(int UpdateDelay)
     RtcBegin = false;
     now = DateTime(CompileTime.unixtime() + millis() / 1000);
     Inrtc.setTime(now.unixtime());
-    Serial.println("[Clock] Can't Load RTC Time, try to reset the RTC (turn off main power and install the RTC battary again)");
+    Debug.println("[Clock] Can't Load RTC Time, try to reset the RTC (turn off main power and install the RTC battary again)");
   };
 }
 
@@ -75,7 +76,7 @@ void RealTimeClock::update()
       {
         if (tBeginFalse == 0)
         { // Print error once.
-          Serial.println("[Clock] RTC.begin() Return False");
+          Debug.println("[Clock] RTC.begin() Return False");
         }
         tBeginFalse++;
         now = DateTime(CompileTime.unixtime() + millis() / 1000);
@@ -85,15 +86,16 @@ void RealTimeClock::update()
       {
         tBeginFalse = 0;
         tInvalid = 0;
-        Serial.println("[Clock] RTC.begin() Return True");
+        Debug.println("[Clock] RTC.begin() Return True");
       }
     }
   } // end rtc.begin() check
+
   DateTime NewTime = rtc.now();
   if (!NewTime.isValid())
   {
     tInvalid++;
-    Serial.println("[Clock] RTC.now() Data Invalid");
+    Debug.println("[Clock] RTC.now() Data Invalid");
     now = DateTime(CompileTime.unixtime() + millis() / 1000);
   } // end Check valid
   else if (NewTime == LastUpdate)
@@ -104,7 +106,7 @@ void RealTimeClock::update()
       {
         LostRTC = true;
         CompileTime = DateTime(now.unixtime() - tLastUpdate);
-        Serial.println("[Clock] RTC.now() Not Update");
+        Debug.println("[Clock] RTC.now() Not Update");
       }
       tInvalid++;
       now = DateTime(CompileTime.unixtime() + millis() / 1000);
@@ -114,7 +116,7 @@ void RealTimeClock::update()
   {
     if (tInvalid != 0)
     {
-      Serial.println("[Clock] RTC OK");
+      Debug.println("[Clock] RTC OK");
     }
     now = NewTime;
     LastUpdate = NewTime;
@@ -143,7 +145,7 @@ String RealTimeClock::TimeStamp(String NowSet, String str)
   }
   else
   {
-    Serial.println("[Clock] TimeStamp print Error. T = now");
+    Debug.println("[Clock] TimeStamp print Error. T = now");
   }
 
   String Now = "";
@@ -181,7 +183,7 @@ String RealTimeClock::DateStamp(String NowSet, String YMD, String str, int YearD
   }
   else
   {
-    Serial.println("[Clock] TimeStamp print Error. T = now");
+    Debug.println("[Clock] TimeStamp print Error. T = now");
   }
 
   String Today = "";
@@ -243,7 +245,7 @@ String RealTimeClock::DateStamp(String NowSet, String Format)
   }
   else
   {
-    Serial.println("[Clock] TimeStamp print Error. T = now");
+    Debug.println("[Clock] TimeStamp print Error. T = now");
   }
 
   String Str = Format;
@@ -535,7 +537,7 @@ void RealTimeClock::UserSetTime(int Do)
       Cursor = 0;
       update();
       Inrtc.setTime(now.unixtime());
-      Serial.println("[Clock] Adjust Time. now = " + DateTimeStamp());
+      Debug.println("[Clock] Adjust Time. now = " + DateTimeStamp());
       break;
     }
     break;
@@ -554,20 +556,27 @@ DateTime RealTimeClock::TimeSpanYearMonth(DateTime T, int addYear, int addMonth)
   return DateTime(YearOperator, MonthOperator, T.day(), T.hour(), T.minute(), T.second());
 }
 
+int RealTimeClock::CheckTimeDifference(int Year, int Month, int Day, int hour, int minute, int second)
+{
+  DateTime D(Year, Month, Day, hour, minute, second);
+  return D.unixtime() - now.unixtime();
+}
+
 void RealTimeClock::SetTime(int Year, int Month, int Day, int hour, int minute, int second)
 {
   DateTime D(Year, Month, Day, hour, minute, second);
+  int TimeDifference = D.unixtime() - now.unixtime();
   if (RtcBegin)
   {
     rtc.adjust(D);
   }
   else
   {
-    CompileTime = D;
+    CompileTime = DateTime(D.unixtime() - millis() / 1000);
   }
-  update();
   Inrtc.setTime(now.unixtime());
-  Serial.println("[Clock] Auto Adjust Time. now = " + DateTimeStamp());
+  now = D;
+  Debug.println("[Clock] Auto Adjust Time. Offset = " + String(TimeDifference) + " s. now = " + DateTimeStamp());
 }
 
 void RealTimeClock::SetTime(int unix_epoch)
@@ -583,5 +592,5 @@ void RealTimeClock::SetTime(int unix_epoch)
   }
   Inrtc.setTime(unix_epoch);
   now = DateTime(unix_epoch);
-  Serial.println("[Clock] Auto Adjust Time. Offset = " + String(TimeDifference) + " s. now = " + DateTimeStamp());
+  Debug.println("[Clock] Auto Adjust Time. Offset = " + String(TimeDifference) + " s. now = " + DateTimeStamp());
 }
