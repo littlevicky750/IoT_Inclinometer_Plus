@@ -71,12 +71,12 @@ const unsigned char Open_Page2 [] PROGMEM = {
 };
 
 // 'Lock', 13x12px
-const unsigned char Switch_Lock [] PROGMEM = {
+const unsigned char Lock_Lock [] PROGMEM = {
 	0x00, 0x00, 0x38, 0x00, 0x7c, 0x00, 0xee, 0x00, 0xc6, 0x00, 0xc6, 0x00, 0xff, 0x01, 0xef, 0x01, 
 	0xef, 0x01, 0xef, 0x01, 0xe7, 0x01, 0xff, 0x01
 };
 // 'Unlock', 13x12px
-const unsigned char Switch_Unlock [] PROGMEM = {
+const unsigned char Lock_Unlock [] PROGMEM = {
 	0x00, 0x07, 0x80, 0x0f, 0xc0, 0x1d, 0xc0, 0x18, 0xc0, 0x18, 0xc0, 0x00, 0xff, 0x01, 0xef, 0x01, 
 	0xef, 0x01, 0xef, 0x01, 0xe7, 0x01, 0xff, 0x01
 };
@@ -294,10 +294,10 @@ const unsigned char* Addr_allArray[3] = {
 
 
 // Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 96)
-const int Switch_allArray_LEN = 2;
-const unsigned char* Switch_allArray[2] = {
-	Switch_Lock,
-	Switch_Unlock
+const int Lock_allArray_LEN = 2;
+const unsigned char* Lock_allArray[2] = {
+	Lock_Lock,
+	Lock_Unlock
 };
 
 
